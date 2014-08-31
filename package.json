@@ -1,11 +1,8 @@
 {
   "name": "fiberglass",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "some material to scaffold javascript modules",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
+  "main": "./src/main",
   "repository": {
     "type": "git",
     "url": "https://github.com/benjamine/fiberglass.git"
@@ -20,5 +17,26 @@
   "bugs": {
     "url": "https://github.com/benjamine/fiberglass/issues"
   },
-  "homepage": "https://github.com/benjamine/fiberglass"
+  "homepage": "https://github.com/benjamine/fiberglass",
+  "devDependencies": {
+    "codeclimate-test-reporter": "0.0.3",
+    "expect.js": "~0.3.1",
+    "gulp": "~3.8.6",
+    "gulp-jshint": "~1.5.6",
+    "gulp-load-plugins": "~0.3.0",
+    "gulp-mocha": "~0.4.1",
+    "gulp-plumber": "~0.5.6",
+    "gulp-rename": "~1.1.0",
+    "gulp-replace": "~0.2.0",
+    "gulp-uglify": "~0.2.1",
+    "gulp-util": "~2.2.14",
+    "jshint-stylish": "~0.1.5",
+    "istanbul": "^0.3.0",
+    "mocha": "~1.17.1",
+    "mocha-lcov-reporter": "0.0.1",
+    "require-dir": "~0.1.0",
+    "rimraf": "~2.2.8",
+    "shelljs": "^0.3.0",
+    "underscore.string": "^2.3.3"
+  }
 }
