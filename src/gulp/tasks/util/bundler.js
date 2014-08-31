@@ -1,19 +1,15 @@
 
 var path = require('path');
 var fs = require('fs');
-var gulp = require('gulp');
-var plugins = require('gulp-load-plugins')();
 var _ = require('underscore.string');
 
-var packageInfo = require('../../package.json');
-
-function detectBrowserifyTransforms() {
+function detectBrowserifyTransforms(projectRoot) {
   // find browserify-transform packages in node_modules
   var transform = [];
-  var dir = path.join(__dirname, '../../node_modules');
+  var dir = path.join(projectRoot, 'node_modules');
   fs.readdirSync(dir).forEach(function(folder) {
     if (fs.existsSync(path.join(dir, folder, 'package.json'))) {
-      var filename = '../../node_modules/' + folder + '/package.json';
+      var filename = path.join(projectRoot, 'node_modules', folder, 'package.json');
       var moduleInfo = require(filename);
       if (Array.isArray(moduleInfo.keywords) &&
         moduleInfo.keywords.indexOf('browserify-transform') > 0) {
@@ -24,11 +20,10 @@ function detectBrowserifyTransforms() {
   return transform;
 }
 
-var detectedBrowserifyTransforms = detectBrowserifyTransforms();
-
 var allTasks = [];
 
-function bundle(options) {
+function bundle(gulp, plugins, options) {
+  var packageInfo = options.packageInfo;
   var name = options.name || packageInfo.name;
   var taskName = 'build-' + name;
   var src = options.src || 'src/main.js';
@@ -41,8 +36,6 @@ function bundle(options) {
     }
 
     var browserifyOptions = options.browserifyOptions || {};
-    browserifyOptions.transform = browserifyOptions.transform ||
-      detectedBrowserifyTransforms;
 
     var stream = gulp.src(src)
       .pipe(plugins.replace('{{package-version}}', packageInfo.version))
@@ -62,18 +55,25 @@ function getAllTasks() {
   return allTasks.slice();
 }
 
-function auto() {
+function auto(loader) {
+  var gulp = loader.gulp;
+  var plugins = loader.plugins;
+  var packageInfo = loader.packageInfo();
+
+  var detectedTransforms = detectBrowserifyTransforms(loader.projectRoot);
 
   // main bundle
-  bundle({
+  bundle(gulp, plugins, {
     browserifyOptions: {
       name: packageInfo.name,
       standalone: _.camelize(packageInfo.name),
-    }
+      transform: detectedTransforms
+    },
+    packageInfo: packageInfo
   });
 
   // find additional bundles as: /src/main-{{bundle-name}}.js
-  fs.readdirSync(path.join(__dirname, '../../src')).forEach(function(filename) {
+  fs.readdirSync(path.join(loader.projectRoot, 'src')).forEach(function(filename) {
     if (/main\-.+\.js/.test(filename)) {
       var name = /main\-(.+)\.js/.exec(filename)[1];
       // identify if it's an alternative bundle, (to be used instead main bundle)
@@ -83,20 +83,26 @@ function auto() {
       if (!alternative) {
         standalone += '.' + _.camelize(name);
       }
-      bundle({
+      bundle(gulp, plugins, {
         name: packageInfo.name + '-' + name,
         src: 'src/' + filename,
         browserifyOptions: {
           standalone: standalone,
-        }
+          transform: detectedTransforms
+        },
+        packageInfo: packageInfo
       });
     }
   });
 
-  bundle({
+  bundle(gulp, plugins, {
     name: 'test-bundle',
     src: 'test/index.js',
-    minify: false
+    minify: false,
+    packageInfo: packageInfo,
+    browserifyOptions: {
+      transform: detectedTransforms
+    }
   });
 
   var tasks = getAllTasks();

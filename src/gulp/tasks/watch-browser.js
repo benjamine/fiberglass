@@ -1,8 +1,7 @@
 
 exports.tags = ['browser-only'];
-exports.register = function(){
+exports.register = function(gulp){
 
-  var gulp = require('gulp');
   var gutil = require('gulp-util');
 
   gulp.task('watch-browser', ['test', 'test-browser'], function() {

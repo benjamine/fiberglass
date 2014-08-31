@@ -1,8 +1,8 @@
 
 exports.tags = [];
-exports.register = function(){
+exports.register = function(gulp, loader){
 
-  var gulp = require('gulp');
+  var projectRoot = loader.projectRoot;
   var path = require('path');
   require('shelljs/global');
   /*global config, exec, cd */
@@ -11,8 +11,8 @@ exports.register = function(){
   var ghPages = require('../../gh-pages/publisher');
 
   gulp.task('bump', [], function(callback) {
-    var packageInfo = require('../package');
-    cd(path.join(__dirname, '..'));
+    var packageInfo = loader.packageInfo();
+    cd(path.join(projectRoot));
 
     // version bump
     exec('npm version patch');

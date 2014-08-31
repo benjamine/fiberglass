@@ -1,9 +1,8 @@
 
 exports.tags = [];
-exports.register = function(){
+exports.register = function(gulp, loader){
 
-  var gulp = require('gulp');
-  var plugins = require('gulp-load-plugins')();
+  var plugins = loader.plugins;
   var plumber = require('./util/plumber').plumber;
 
   gulp.task('test', ['lint'], function () {
@@ -16,5 +15,4 @@ exports.register = function(){
       }))
       .pipe(plumber());
   });
-
 };

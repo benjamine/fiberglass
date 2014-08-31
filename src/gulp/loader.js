@@ -1,9 +1,17 @@
+var path = require('path');
 var requireDir = require('require-dir');
 
-function GulpTaskLoader(){
+function GulpTaskLoader(gulp, projectRoot){
+  this.projectRoot = projectRoot;
+  this.gulp = gulp;
+  this.plugins = require('gulp-load-plugins')({
+    config: path.join(__dirname, '../../package.json'),
+    lazy: true
+  });
   this.tasks = requireDir('./tasks');
   var self = this;
   this.tags = {};
+
   Object.keys(this.tasks).forEach(function(taskName) {
     var task = self.tasks[taskName];
     if (!task.tags) {
@@ -21,7 +29,9 @@ function GulpTaskLoader(){
 }
 
 GulpTaskLoader.prototype.get = function() {
-  var args = Array.prototype.slice.apply(args);
+  var args = Array.prototype.slice.apply(arguments).filter(function(arg){
+    return typeof arg === 'string' && arg.length > 0;
+  });
   var self = this;
   var tasks = [];
 
@@ -66,10 +76,17 @@ GulpTaskLoader.prototype.get = function() {
 };
 
 GulpTaskLoader.prototype.register = function() {
+  var self = this;
   var tasks = this.get.apply(this, arguments);
   tasks.forEach(function(task){
-    task.register();
+    task.register(self.gulp, self);
   });
 };
 
-module.exports = new GulpTaskLoader();
+GulpTaskLoader.prototype.packageInfo = function() {
+  return require(path.join(this.projectRoot, 'package.json'));
+};
+
+module.exports = function createGulpTaskLoder(gulp, projectRoot) {
+  return new GulpTaskLoader(gulp, projectRoot);
+};

@@ -1,12 +1,12 @@
+var path = require('path');
 
 exports.tags = [];
-exports.register = function(){
+exports.register = function(gulp, loader){
 
-  var gulp = require('gulp');
   var rimraf = require('rimraf');
 
   gulp.task('clean', function(callback) {
-    rimraf('./build', callback);
+    rimraf(path.join(loader.projectRoot, 'build'), callback);
   });
 
 };
