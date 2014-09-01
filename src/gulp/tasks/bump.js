@@ -12,7 +12,7 @@ exports.register = function(gulp, loader){
 
   gulp.task('bump', [], function(callback) {
     var packageInfo = loader.packageInfo();
-    cd(path.join(projectRoot));
+    cd(projectRoot);
 
     // version bump
     exec('npm version patch');
@@ -25,7 +25,7 @@ exports.register = function(gulp, loader){
       exec('git commit --amend --no-edit');
     }
 
-    ghPages.publish();
+    ghPages.publish(projectRoot);
 
     exec('git push origin');
     exec('git push --tags origin');

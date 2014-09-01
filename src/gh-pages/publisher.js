@@ -4,9 +4,10 @@ require('shelljs/global');
 /*global config, exec, cd, test, cp, grep */
 config.fatal = true;
 
-function publish(){
-  var packageInfo = require('../../package');
-  cd(path.join(__dirname, '../..'));
+function publish(projectRoot){
+
+  var packageInfo = require(path.join(projectRoot, '../../package.json'));
+  cd(projectRoot);
   if (packageInfo.repository && test('-d', './pages')) {
     // update/create github page
     if (!test('-d', './gh-pages')) {
