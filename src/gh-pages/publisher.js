@@ -6,7 +6,7 @@ config.fatal = true;
 
 function publish(projectRoot){
 
-  var packageInfo = require(path.join(projectRoot, '../../package.json'));
+  var packageInfo = require(path.join(projectRoot, 'package.json'));
   cd(projectRoot);
   if (packageInfo.repository && test('-d', './pages')) {
     // update/create github page
