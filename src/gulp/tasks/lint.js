@@ -11,11 +11,11 @@ exports.register = function(gulp, loader){
         './src/**/*.js',
         './test/**/*.js'
       ])
-      .pipe(plumber())
+      .pipe(plumber(loader))
       .pipe(plugins.jshint())
       .pipe(plugins.jshint.reporter('jshint-stylish'))
       .pipe(plugins.jshint.reporter('fail'))
-      .pipe(plumber());
+      .pipe(plumber(loader));
   });
 
 };

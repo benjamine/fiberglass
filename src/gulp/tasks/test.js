@@ -7,12 +7,12 @@ exports.register = function(gulp, loader){
 
   gulp.task('test', ['lint'], function () {
     return gulp.src('./test/index.js')
-      .pipe(plumber())
+      .pipe(plumber(loader))
       .pipe(plugins.mocha({
         grep: process.env.FILTER || undefined,
         reporter: 'spec',
         growl: true
       }))
-      .pipe(plumber());
+      .pipe(plumber(loader));
   });
 };
