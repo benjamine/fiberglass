@@ -2,17 +2,22 @@
 var path = require('path');
 var fs = require('fs');
 var _ = require('underscore.string');
+var browserify = require('browserify');
+var minifyify = require('minifyify');
+var mold = require('mold-source-map');
+var vinylSource = require('vinyl-source-stream');
+var vinylBuffer = require('vinyl-buffer');
 
 function detectBrowserifyTransforms(projectRoot) {
   // find browserify-transform packages in node_modules
   var transform = [];
   var dir = path.join(projectRoot, 'node_modules');
   fs.readdirSync(dir).forEach(function(folder) {
-    if (fs.existsSync(path.join(dir, folder, 'package.json'))) {
-      var filename = path.join(projectRoot, 'node_modules', folder, 'package.json');
+    var filename = path.join(dir, folder, 'package.json');
+    if (fs.existsSync(filename)) {
       var moduleInfo = require(filename);
       if (Array.isArray(moduleInfo.keywords) &&
-        moduleInfo.keywords.indexOf('browserify-transform') > 0) {
+        moduleInfo.keywords.indexOf('browserify-transform') >= 0) {
         transform.push(folder);
       }
     }
@@ -22,31 +27,61 @@ function detectBrowserifyTransforms(projectRoot) {
 
 var allTasks = [];
 
+function moldTransformSourcesRelativeToAndPrepend(root, prefix) {
+  return mold.transformSources(function map(file){
+    return prefix + path.relative(root, file);
+  });
+}
+
 function bundle(gulp, plugins, options) {
   var packageInfo = options.packageInfo;
   var name = options.name || packageInfo.name;
-  var taskName = 'build-' + name;
-  var src = options.src || 'src/main.js';
+  var taskName = 'bundle-' + name;
+  var src = options.src || './src/main.js';
   var minify = options.minify !== false;
+
   gulp.task(taskName, ['clean'], function() {
-    if (fs.existsSync(path.join(__dirname, '../../build/'+name+'.js')) &&
-      (!minify || fs.existsSync(path.join(__dirname, '../../build/'+name+'.min.js')))) {
+    if (fs.existsSync('./build/'+name+'.js') &&
+      (!minify || fs.existsSync('./build/'+name+'.min.js'))) {
       console.log(name + ' already exists');
       return;
     }
 
     var browserifyOptions = options.browserifyOptions || {};
+    browserifyOptions.debug = true;
 
-    var stream = gulp.src(src)
-      .pipe(plugins.replace('{{package-version}}', packageInfo.version))
-      .pipe(plugins.replace('{{package-homepage}}', packageInfo.homepage))
-      .pipe(plugins.browserify(browserifyOptions))
-      .pipe(plugins.rename(name+'.js'))
-      .pipe(gulp.dest('./build'));
-    if (!minify) { return stream; }
-    return stream.pipe(plugins.uglify())
-      .pipe(plugins.rename(name+'.min.js'))
-      .pipe(gulp.dest('./build'));
+    function bundlify(min){
+      var bundler = browserify(browserifyOptions);
+      bundler.add(src);
+      var fullname = name + (min ? '.min' : '');
+      if (min) {
+        bundler.plugin(minifyify, {
+          map: fullname + '.map',
+          output: './build/' + fullname + '.map',
+          compressPath: function (p) {
+            return '/source-files/' + packageInfo.name + '/' + path.relative('.', p);
+          }
+        });
+      }
+      var stream = bundler.bundle();
+      if (!min) {
+        stream = stream.pipe(moldTransformSourcesRelativeToAndPrepend('.',
+          '/source-files/' + packageInfo.name + '/'));
+      }
+      stream
+        .pipe(vinylSource(fullname + '.js'))
+        .pipe(vinylBuffer())
+
+        .pipe(plugins.replace('{{package-version}}', packageInfo.version))
+        .pipe(plugins.replace('{{package-homepage}}', packageInfo.homepage))
+
+        .pipe(gulp.dest('./build'));
+    }
+
+    bundlify();
+    if (minify) {
+      bundlify(true);
+    }
   });
   allTasks.push(taskName);
 }
@@ -61,6 +96,10 @@ function auto(loader) {
   var packageInfo = loader.packageInfo();
 
   var detectedTransforms = detectBrowserifyTransforms(loader.projectRoot);
+
+  if (detectedTransforms && detectedTransforms.length) {
+    console.log('browserifying with transforms: ' + detectedTransforms.join(', '));
+  }
 
   // main bundle
   bundle(gulp, plugins, {
@@ -85,7 +124,7 @@ function auto(loader) {
       }
       bundle(gulp, plugins, {
         name: packageInfo.name + '-' + name,
-        src: 'src/' + filename,
+        src: './src/' + filename,
         browserifyOptions: {
           standalone: standalone,
           transform: detectedTransforms
@@ -97,7 +136,7 @@ function auto(loader) {
 
   bundle(gulp, plugins, {
     name: 'test-bundle',
-    src: 'test/index.js',
+    src: './test/index.js',
     minify: false,
     packageInfo: packageInfo,
     browserifyOptions: {
@@ -106,16 +145,16 @@ function auto(loader) {
   });
 
   var tasks = getAllTasks();
-
+  var mochaFolder = path.join(__dirname, '../../../../node_modules/mocha');
   gulp.task('copy-test-resources', ['clean'], function() {
-    gulp.src('node_modules/mocha/mocha.js')
+    gulp.src(path.join(mochaFolder, 'mocha.js'))
       .pipe(gulp.dest('build/test'));
-    gulp.src('node_modules/mocha/mocha.css')
+    gulp.src(path.join(mochaFolder, 'mocha.css'))
       .pipe(gulp.dest('build/test'));
   });
   tasks.push('copy-test-resources');
 
-  if (fs.existsSync(path.join(__dirname, '../../bower.json' ))) {
+  if (fs.existsSync(path.join(loader.projectRoot, 'bower.json' ))) {
     gulp.task('copy-bower-json', ['clean'], function() {
       gulp.src('bower.json')
         .pipe(plugins.replace(/build\//g, ''))
