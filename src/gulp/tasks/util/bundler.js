@@ -9,7 +9,7 @@ var vinylSource = require('vinyl-source-stream');
 var vinylBuffer = require('vinyl-buffer');
 
 function detectBrowserifyTransforms(projectRoot) {
-  // find browserify-transform packages in node_modules
+  // find browserify-transform packages in node_modules (eg: brfs)
   var transform = [];
   var dir = path.join(projectRoot, 'node_modules');
   fs.readdirSync(dir).forEach(function(folder) {
@@ -40,7 +40,7 @@ function bundle(gulp, plugins, options) {
   var src = options.src || './src/main.js';
   var minify = options.minify !== false;
 
-  gulp.task(taskName, ['clean'], function() {
+  gulp.task(taskName, ['clean'], function(callback) {
     if (fs.existsSync('./build/'+name+'.js') &&
       (!minify || fs.existsSync('./build/'+name+'.min.js'))) {
       console.log(name + ' already exists');
@@ -76,12 +76,24 @@ function bundle(gulp, plugins, options) {
         .pipe(plugins.replace('{{package-homepage}}', packageInfo.homepage))
 
         .pipe(gulp.dest('./build'));
+      return stream;
     }
 
-    bundlify();
-    if (minify) {
-      bundlify(true);
+    var pending = 1;
+    function onBundleDone(){
+      pending--;
+      if (pending) {
+        return;
+      }
+      callback();
     }
+    bundlify().on('end', onBundleDone);
+
+    if (!minify) {
+      return;
+    }
+    pending++;
+    bundlify(true).on('end', onBundleDone);
   });
   allTasks.push(taskName);
 }
