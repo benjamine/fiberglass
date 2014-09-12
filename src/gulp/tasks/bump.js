@@ -6,7 +6,6 @@ exports.register = function(gulp, loader){
   require('shelljs/global');
   /*global config, exec, cd */
   config.fatal = true;
-  config.silent = true;
 
   var ghPages = require('../../gh-pages/publisher');
 
@@ -39,9 +38,11 @@ exports.register = function(gulp, loader){
     exec('git rebase ' + upstreamRemote + '/master');
 
     // version bump
+    console.log('version patch');
     exec('npm version patch');
 
     // test
+    console.log('npm test');
     exec('npm test');
     if (exec('git status --porcelain ./build')) {
       // update /build
@@ -51,17 +52,22 @@ exports.register = function(gulp, loader){
 
     ghPages.publish(projectRoot);
 
+    console.log('pushing to origin');
     exec('git push origin');
     exec('git push --tags origin');
+    var npmPublish = true;
     if (packageInfo.private) {
       console.log('private package, skipping npm publish');
-      callback();
+      npmPublish = false;
     }
     if (!packageInfo.homepage) {
       console.log('no package homepage specified, skipping npm publish');
-      callback();
+      npmPublish = false;
     }
-    exec('npm publish');
+    if (npmPublish) {
+      console.log('publishing to npm');
+      exec('npm publish');
+    }
 
     if (currentBranch !== 'master' && currentBranch !== 'HEAD') {
       console.log('going back to branch ' + currentBranch);
