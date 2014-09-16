@@ -44,17 +44,17 @@ exports.register = function(gulp, loader){
     // test
     console.log('npm test');
     exec('npm test');
-    if (exec('git status --porcelain ./build')) {
-      // update /build
-      exec('git add --all ./build');
+    if (exec('git status --porcelain ./public/build')) {
+      // update /public/build
+      exec('git add --all ./public/build');
       exec('git commit --amend --no-edit');
     }
 
     ghPages.publish(projectRoot);
 
-    console.log('pushing to origin');
-    exec('git push origin');
-    exec('git push --tags origin');
+    console.log('pushing to ' + upstreamRemote);
+    exec('git push ' + upstreamRemote);
+    exec('git push --tags ' + upstreamRemote);
     var npmPublish = true;
     if (packageInfo.private) {
       console.log('private package, skipping npm publish');

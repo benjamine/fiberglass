@@ -9,7 +9,7 @@ function publish(projectRoot){
   var packageInfo = require(path.join(projectRoot, 'package.json'));
   cd(projectRoot);
   var branchIsNew = false;
-  if (packageInfo.repository && test('-d', './pages')) {
+  if (packageInfo.repository && test('-f', './public/index.html')) {
     // update/create github page
     if (!test('-d', './gh-pages')) {
       console.log('creating ./gh-pages');
@@ -40,7 +40,7 @@ function publish(projectRoot){
     if (!branchIsNew) {
       console.log('updating gh-pages folder');
       exec('git fetch origin gh-pages');
-      exec('git merge origin gh-pages');
+      exec('git merge origin/gh-pages');
     }
 
     console.log('copying files to gh-pages');
@@ -50,7 +50,7 @@ function publish(projectRoot){
       console.log('updating gh-pages');
       exec('git add --all .');
       exec('git commit --no-edit -m "version bump"');
-      exec('git push origin');
+      exec('git push origin gh-pages');
     }
     cd('..');
     if (!grep('gh-pages', '.gitignore')) {
