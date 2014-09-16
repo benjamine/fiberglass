@@ -1,1 +1,1 @@
-require('require-dir')('./gulp-tasks');
+require('bulk-require')(__dirname + '/gulp-tasks', '*.js');

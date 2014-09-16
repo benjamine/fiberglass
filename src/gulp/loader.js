@@ -1,5 +1,5 @@
 var path = require('path');
-var requireDir = require('require-dir');
+var bulk = require('bulk-require');
 
 function GulpTaskLoader(gulp, projectRoot){
   this.projectRoot = projectRoot;
@@ -8,7 +8,7 @@ function GulpTaskLoader(gulp, projectRoot){
     config: path.join(__dirname, '../../package.json'),
     lazy: true
   });
-  this.tasks = requireDir('./tasks');
+  this.tasks = bulk(__dirname + '/tasks', '*.js');
   var self = this;
   this.tags = {};
 
