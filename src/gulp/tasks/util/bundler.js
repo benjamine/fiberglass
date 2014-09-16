@@ -8,6 +8,8 @@ var mold = require('mold-source-map');
 var vinylSource = require('vinyl-source-stream');
 var vinylBuffer = require('vinyl-buffer');
 
+var buildDir = './public/build';
+
 function detectBrowserifyTransforms(projectRoot) {
   // find browserify-transform packages in node_modules (eg: brfs)
   var transform = [];
@@ -41,8 +43,8 @@ function bundle(gulp, plugins, options) {
   var minify = options.minify !== false;
 
   gulp.task(taskName, ['clean'], function(callback) {
-    if (fs.existsSync('./build/'+name+'.js') &&
-      (!minify || fs.existsSync('./build/'+name+'.min.js'))) {
+    if (fs.existsSync(path.join(buildDir, name+'.js')) &&
+      (!minify || fs.existsSync(path.join(buildDir, name+'.min.js')))) {
       console.log(name + ' already exists');
       return;
     }
@@ -57,7 +59,7 @@ function bundle(gulp, plugins, options) {
       if (min) {
         bundler.plugin(minifyify, {
           map: fullname + '.map',
-          output: './build/' + fullname + '.map',
+          output: path.join(buildDir, fullname + '.map'),
           compressPath: function (p) {
             return '/source-files/' + packageInfo.name + '/' + path.relative('.', p);
           }
@@ -68,21 +70,21 @@ function bundle(gulp, plugins, options) {
         stream = stream.pipe(moldTransformSourcesRelativeToAndPrepend('.',
           '/source-files/' + packageInfo.name + '/'));
       }
-      stream
+      stream = stream
         .pipe(vinylSource(fullname + '.js'))
         .pipe(vinylBuffer())
 
         .pipe(plugins.replace('{{package-version}}', packageInfo.version))
         .pipe(plugins.replace('{{package-homepage}}', packageInfo.homepage))
 
-        .pipe(gulp.dest('./build'));
+        .pipe(gulp.dest(buildDir));
       return stream;
     }
 
     var pending = 1;
     function onBundleDone(){
       pending--;
-      if (pending) {
+      if (pending > 0) {
         return;
       }
       callback();
@@ -158,19 +160,20 @@ function auto(loader) {
 
   var tasks = getAllTasks();
   var mochaFolder = path.join(__dirname, '../../../../node_modules/mocha');
+  var testBuildDir = path.join(buildDir, 'test');
   gulp.task('copy-test-resources', ['clean'], function() {
     gulp.src(path.join(mochaFolder, 'mocha.js'))
-      .pipe(gulp.dest('build/test'));
+      .pipe(gulp.dest(testBuildDir));
     gulp.src(path.join(mochaFolder, 'mocha.css'))
-      .pipe(gulp.dest('build/test'));
+      .pipe(gulp.dest(testBuildDir));
   });
   tasks.push('copy-test-resources');
 
   if (fs.existsSync(path.join(loader.projectRoot, 'bower.json' ))) {
     gulp.task('copy-bower-json', ['clean'], function() {
       gulp.src('bower.json')
-        .pipe(plugins.replace(/build\//g, ''))
-        .pipe(gulp.dest('build'));
+        .pipe(plugins.replace(/public\/build\//g, ''))
+        .pipe(gulp.dest(buildDir));
     });
     tasks.push('copy-bower-json');
   }

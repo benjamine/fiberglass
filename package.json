@@ -1,6 +1,6 @@
 {
   "name": "fiberglass",
-  "version": "0.0.10",
+  "version": "0.0.11",
   "description": "some material to scaffold javascript modules",
   "main": "./src/main",
   "repository": {
@@ -25,7 +25,6 @@
     "expect.js": "~0.3.1",
     "gulp": "^3.8.8",
     "gulp-jshint": "^1.8.4",
-    "gulp-karma": "0.0.4",
     "gulp-load-plugins": "^0.6.0",
     "gulp-mocha": "^1.1.0",
     "gulp-plumber": "^0.6.5",
@@ -33,6 +32,7 @@
     "gulp-replace": "^0.4.0",
     "gulp-uglify": "^1.0.1",
     "gulp-util": "^3.0.1",
+    "http-server": "^0.7.1",
     "istanbul": "^0.3.2",
     "jshint-stylish": "^0.4.0",
     "karma": "^0.12.23",

@@ -42,10 +42,10 @@ function publish(projectRoot){
       exec('git fetch origin gh-pages');
       exec('git merge origin gh-pages');
     }
+
     console.log('copying files to gh-pages');
-    cp('-Rf', '../pages/*', './');
-    cp('-Rf', '../build/*', './build');
-    cp('-Rf', '../test/index.html', './test');
+    cp('-Rf', '../public/*', './');
+
     if (exec('git status --porcelain .').output) {
       console.log('updating gh-pages');
       exec('git add --all .');

@@ -4,12 +4,12 @@ exports.register = function(gulp){
 
   var gutil = require('gulp-util');
 
-  gulp.task('watch-browser', ['test', 'test-browser'], function() {
+  gulp.task('watch-browser', ['test-browser'], function() {
     require('./util/plumber').enable();
     return gulp.watch([
       'src/**',
       'test/**'
-      ], ['test']).on('error', gutil.log);
+      ], ['test-browser']).on('error', gutil.log);
   });
 
 };
