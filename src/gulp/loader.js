@@ -9,6 +9,7 @@ function GulpTaskLoader(gulp, projectRoot){
     lazy: true
   });
   this.tasks = bulk(__dirname + '/tasks', '*.js');
+  this.bundleTasks = [];
   var self = this;
   this.tags = {};
 
@@ -82,6 +83,12 @@ GulpTaskLoader.prototype.register = function() {
     task.register(self.gulp, self);
   });
 };
+
+GulpTaskLoader.prototype.addBundleTasks = function() {
+  this.bundleTasks.push.apply(this.bundleTasks, arguments);
+  return this;
+};
+
 
 GulpTaskLoader.prototype.packageInfo = function() {
   return require(path.join(this.projectRoot, 'package.json'));

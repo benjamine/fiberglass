@@ -178,6 +178,10 @@ function auto(loader) {
     tasks.push('copy-bower-json');
   }
 
+  if (loader.bundleTasks) {
+    tasks.push.apply(tasks, loader.bundleTasks);
+  }
+
   gulp.task('bundle', tasks, function(){
   });
 
