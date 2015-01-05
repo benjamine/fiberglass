@@ -7,6 +7,10 @@ var minifyify = require('minifyify');
 var mold = require('mold-source-map');
 var vinylSource = require('vinyl-source-stream');
 var vinylBuffer = require('vinyl-buffer');
+require('shelljs/global');
+/* global exec, config, error */
+config.silent = true;
+config.fatal = true;
 
 var buildDir = './public/build';
 
@@ -33,6 +37,15 @@ function moldTransformSourcesRelativeToAndPrepend(root, prefix) {
   return mold.transformSources(function map(file){
     return prefix + path.relative(root, file);
   });
+}
+
+var gitVersion = null;
+function getGitVersion() {
+  if (gitVersion) {
+    return gitVersion;
+  }
+  gitVersion = _.trim(exec('git rev-parse --short HEAD').output || '');
+  return gitVersion;
 }
 
 function bundle(gulp, plugins, options) {
@@ -70,12 +83,16 @@ function bundle(gulp, plugins, options) {
         stream = stream.pipe(moldTransformSourcesRelativeToAndPrepend('.',
           '/source-files/' + packageInfo.name + '/'));
       }
+      var replaceOptions = {
+        skipBinary: true
+      };
       stream = stream
         .pipe(vinylSource(fullname + '.js'))
         .pipe(vinylBuffer())
 
-        .pipe(plugins.replace('{{package-version}}', packageInfo.version))
-        .pipe(plugins.replace('{{package-homepage}}', packageInfo.homepage))
+        .pipe(plugins.replace('{{package-version}}', packageInfo.version, replaceOptions))
+        .pipe(plugins.replace('{{package-homepage}}', packageInfo.homepage, replaceOptions))
+        .pipe(plugins.replace('{{git-version}}', getGitVersion, replaceOptions))
 
         .pipe(gulp.dest(buildDir));
       return stream;
