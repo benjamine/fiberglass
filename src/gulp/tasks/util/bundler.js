@@ -3,16 +3,18 @@ var path = require('path');
 var fs = require('fs');
 var _ = require('underscore.string');
 var browserify = require('browserify');
+var watchify = require('watchify');
 var minifyify = require('minifyify');
 var mold = require('mold-source-map');
 var vinylSource = require('vinyl-source-stream');
 var vinylBuffer = require('vinyl-buffer');
+var buildDir = './public/build';
+var watchBundles = false;
+
 require('shelljs/global');
-/* global exec, config, error */
+/* global exec, config */
 config.silent = true;
 config.fatal = true;
-
-var buildDir = './public/build';
 
 function detectBrowserifyTransforms(projectRoot) {
   // find browserify-transform packages in node_modules (eg: brfs)
@@ -32,6 +34,7 @@ function detectBrowserifyTransforms(projectRoot) {
 }
 
 var allTasks = [];
+var allWatchTasks = [];
 
 function moldTransformSourcesRelativeToAndPrepend(root, prefix) {
   return mold.transformSources(function map(file){
@@ -55,20 +58,57 @@ function bundle(gulp, plugins, options) {
   var src = options.src || './src/main.js';
   var minify = options.minify !== false;
 
-  gulp.task(taskName, ['clean'], function(callback) {
-    if (fs.existsSync(path.join(buildDir, name+'.js')) &&
-      (!minify || fs.existsSync(path.join(buildDir, name+'.min.js')))) {
-      console.log(name + ' already exists');
-      return;
-    }
+  function bundleTask(callback) {
 
     var browserifyOptions = options.browserifyOptions || {};
     browserifyOptions.debug = true;
 
-    function bundlify(min){
+    function bundlify(min) {
+      if (watchBundles) {
+        browserifyOptions.cache = {};
+        browserifyOptions.packageCache = {};
+        browserifyOptions.fullPaths = true;
+      }
       var bundler = browserify(browserifyOptions);
-      bundler.add(src);
       var fullname = name + (min ? '.min' : '');
+
+      function createBundle() {
+        var stream = bundler.bundle();
+        if (!min) {
+          stream = stream.pipe(moldTransformSourcesRelativeToAndPrepend('.',
+          '/source-files/' + packageInfo.name + '/'));
+        }
+        var replaceOptions = {
+          skipBinary: true
+        };
+
+        stream = stream
+        .pipe(vinylSource(fullname + '.js'))
+        .pipe(vinylBuffer())
+
+        .pipe(plugins.replace('{{package-version}}', packageInfo.version, replaceOptions))
+        .pipe(plugins.replace('{{package-homepage}}', packageInfo.homepage, replaceOptions))
+        .pipe(plugins.replace('{{git-version}}', getGitVersion, replaceOptions))
+
+        .pipe(gulp.dest(buildDir));
+        return stream;
+      }
+
+      if (watchBundles) {
+        // if watch is enabled, wrap this bundler with watchify
+        bundler = watchify(bundler);
+        bundler.on('update', function() {
+          var startTime = new Date();
+          console.log('rebuilding...');
+          var rebuildStream = createBundle();
+          rebuildStream.on('end', function() {
+            var elapsed = Math.floor((new Date().getTime() - startTime.getTime()) / 10) / 100;
+            console.log(fullname + '.js rebuilt (after ' + elapsed + ' s)');
+          });
+        });
+      }
+
+      bundler.add(src);
       if (min) {
         bundler.plugin(minifyify, {
           map: fullname + '.map',
@@ -78,28 +118,12 @@ function bundle(gulp, plugins, options) {
           }
         });
       }
-      var stream = bundler.bundle();
-      if (!min) {
-        stream = stream.pipe(moldTransformSourcesRelativeToAndPrepend('.',
-          '/source-files/' + packageInfo.name + '/'));
-      }
-      var replaceOptions = {
-        skipBinary: true
-      };
-      stream = stream
-        .pipe(vinylSource(fullname + '.js'))
-        .pipe(vinylBuffer())
 
-        .pipe(plugins.replace('{{package-version}}', packageInfo.version, replaceOptions))
-        .pipe(plugins.replace('{{package-homepage}}', packageInfo.homepage, replaceOptions))
-        .pipe(plugins.replace('{{git-version}}', getGitVersion, replaceOptions))
-
-        .pipe(gulp.dest(buildDir));
-      return stream;
+      return createBundle();
     }
 
     var pending = 1;
-    function onBundleDone(){
+    function onBundleDone() {
       pending--;
       if (pending > 0) {
         return;
@@ -113,12 +137,23 @@ function bundle(gulp, plugins, options) {
     }
     pending++;
     bundlify(true).on('end', onBundleDone);
+  }
+
+  gulp.task(taskName, ['clean'], bundleTask);
+  gulp.task(taskName + '-watch', ['clean'], function(callback) {
+    watchBundles = true;
+    return bundleTask(callback);
   });
   allTasks.push(taskName);
+  allWatchTasks.push(taskName + '-watch');
 }
 
 function getAllTasks() {
   return allTasks.slice();
+}
+
+function getAllWatchTasks() {
+  return allWatchTasks.slice();
 }
 
 function auto(loader) {
@@ -176,6 +211,8 @@ function auto(loader) {
   });
 
   var tasks = getAllTasks();
+  var watchTasks = getAllWatchTasks();
+
   var mochaFolder = path.join(__dirname, '../../../../node_modules/mocha');
   var testBuildDir = path.join(buildDir, 'test');
   gulp.task('copy-test-resources', ['clean'], function() {
@@ -185,6 +222,7 @@ function auto(loader) {
       .pipe(gulp.dest(testBuildDir));
   });
   tasks.push('copy-test-resources');
+  watchTasks.push('copy-test-resources');
 
   if (fs.existsSync(path.join(loader.projectRoot, 'bower.json' ))) {
     gulp.task('copy-bower-json', ['clean'], function() {
@@ -193,15 +231,19 @@ function auto(loader) {
         .pipe(gulp.dest(buildDir));
     });
     tasks.push('copy-bower-json');
+    watchTasks.push('copy-bower-json');
   }
 
   if (loader.bundleTasks) {
     tasks.push.apply(tasks, loader.bundleTasks);
+    watchTasks.push.apply(tasks, loader.bundleTasks);
   }
 
-  gulp.task('bundle', tasks, function(){
+  gulp.task('bundle', tasks, function() {
   });
 
+  gulp.task('bundle-watch', watchTasks, function() {
+  });
 }
 
 exports.bundle = bundle;

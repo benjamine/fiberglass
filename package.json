@@ -1,6 +1,6 @@
 {
   "name": "fiberglass",
-  "version": "0.0.14",
+  "version": "0.0.15",
   "description": "some material to scaffold javascript modules",
   "main": "./src/main",
   "repository": {
@@ -52,6 +52,7 @@
     "shelljs": "^0.3.0",
     "underscore.string": "^2.3.3",
     "vinyl-buffer": "^1.0.0",
-    "vinyl-source-stream": "^1.0.0"
+    "vinyl-source-stream": "^1.0.0",
+    "watchify": "^2.2.1"
   }
 }
