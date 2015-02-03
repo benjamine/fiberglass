@@ -51,6 +51,21 @@ function getGitVersion() {
   return gitVersion;
 }
 
+function bundleHasAngular(src) {
+  var angular = false;
+  if (fs.existsSync(path.join(src, '..', 'app/ng-loader.js'))) {
+    angular = true;
+  }
+  if (!angular && fs.existsSync(path.join(src, '..', '.jshintrc'))) {
+    var jshintrc = fs.readFileSync(path.join(src, '..', '.jshintrc')).toString();
+    angular = /angular/.test(jshintrc);
+  }
+  if (angular) {
+    console.log('minifying with angular support (// @ngInject)');
+  }
+  return angular;
+}
+
 function bundle(gulp, plugins, options) {
   var packageInfo = options.packageInfo;
   var name = options.name || packageInfo.name;
@@ -110,8 +125,14 @@ function bundle(gulp, plugins, options) {
 
       bundler.add(src);
       if (min) {
+        var uglifyOptions = {
+          compress: {
+            angular: bundleHasAngular(src, options)
+          }
+        };
         bundler.plugin(minifyify, {
           map: fullname + '.map',
+          uglify: uglifyOptions,
           output: path.join(buildDir, fullname + '.map'),
           compressPath: function (p) {
             return '/source-files/' + packageInfo.name + '/' + path.relative('.', p);
