@@ -90,8 +90,8 @@ function bundle(gulp, plugins, options) {
       function createBundle() {
         var stream = bundler.bundle();
         if (!min) {
-          stream = stream.pipe(moldTransformSourcesRelativeToAndPrepend('.',
-          '/source-files/' + packageInfo.name + '/'));
+          // make all sourcemap paths relative to the bundle location
+          stream = stream.pipe(moldTransformSourcesRelativeToAndPrepend('.', ''));
         }
         var replaceOptions = {
           skipBinary: true
