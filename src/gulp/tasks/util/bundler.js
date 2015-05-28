@@ -257,7 +257,7 @@ function auto(loader) {
 
   if (loader.bundleTasks) {
     tasks.push.apply(tasks, loader.bundleTasks);
-    watchTasks.push.apply(tasks, loader.bundleTasks);
+    watchTasks.push.apply(watchTasks, loader.bundleTasks);
   }
 
   gulp.task('bundle', tasks, function() {
