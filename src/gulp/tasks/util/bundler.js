@@ -11,26 +11,39 @@ var vinylBuffer = require('vinyl-buffer');
 var buildDir = './public/build';
 var watchBundles = false;
 
+function isWatching(){
+  return watchBundles;
+}
+
 require('shelljs/global');
 /* global exec, config */
 config.silent = true;
 config.fatal = true;
 
-function detectBrowserifyTransforms(projectRoot) {
-  // find browserify-transform packages in node_modules (eg: brfs)
+function detectBrowserifyModules(projectRoot) {
+  // find browserify-transform and browserify-plugin packages in node_modules (eg: brfs)
   var transform = [];
+  var plugin = [];
   var dir = path.join(projectRoot, 'node_modules');
   fs.readdirSync(dir).forEach(function(folder) {
     var filename = path.join(dir, folder, 'package.json');
     if (fs.existsSync(filename)) {
       var moduleInfo = require(filename);
-      if (Array.isArray(moduleInfo.keywords) &&
-        moduleInfo.keywords.indexOf('browserify-transform') >= 0) {
-        transform.push(folder);
+      if (Array.isArray(moduleInfo.keywords)) {
+        if (moduleInfo.keywords.indexOf('browserify-transform') >= 0) {
+          transform.push(folder);
+        }
+        if (moduleInfo.keywords.indexOf('browserify-plugin') >= 0) {
+          plugin.push(folder);
+        }
       }
     }
   });
-  return transform;
+  return {
+    transform: transform,
+    plugin: plugin,
+    count: transform.length + plugin.length
+  };
 }
 
 var allTasks = [];
@@ -89,7 +102,7 @@ function bundle(gulp, plugins, options) {
 
       function createBundle() {
         var stream = bundler.bundle();
-        if (!min) {
+        if (!min && !watchBundles) {
           // make all sourcemap paths relative to the bundle location
           stream = stream.pipe(moldTransformSourcesRelativeToAndPrepend('.', ''));
         }
@@ -182,10 +195,10 @@ function auto(loader) {
   var plugins = loader.plugins;
   var packageInfo = loader.packageInfo();
 
-  var detectedTransforms = detectBrowserifyTransforms(loader.projectRoot);
+  var browserifyModules = detectBrowserifyModules(loader.projectRoot);
 
-  if (detectedTransforms && detectedTransforms.length) {
-    console.log('browserifying with transforms: ' + detectedTransforms.join(', '));
+  if (browserifyModules.count) {
+    console.log('browserifying with ' + browserifyModules.plugin.concat(browserifyModules.transform).join(', '));
   }
 
   // main bundle
@@ -193,7 +206,8 @@ function auto(loader) {
     browserifyOptions: {
       name: packageInfo.name,
       standalone: _.camelize(packageInfo.name),
-      transform: detectedTransforms
+      transform: browserifyModules.transform,
+      plugin: browserifyModules.plugin
     },
     packageInfo: packageInfo
   });
@@ -214,7 +228,8 @@ function auto(loader) {
         src: './src/' + filename,
         browserifyOptions: {
           standalone: standalone,
-          transform: detectedTransforms
+          transform: browserifyModules.transform,
+          plugin: browserifyModules.plugin
         },
         packageInfo: packageInfo
       });
@@ -227,7 +242,8 @@ function auto(loader) {
     minify: false,
     packageInfo: packageInfo,
     browserifyOptions: {
-      transform: detectedTransforms
+      transform: browserifyModules.transform,
+      plugin: browserifyModules.plugin
     }
   });
 
@@ -270,3 +286,4 @@ function auto(loader) {
 exports.bundle = bundle;
 exports.getAllTasks = getAllTasks;
 exports.auto = auto;
+exports.isWatching = isWatching;
