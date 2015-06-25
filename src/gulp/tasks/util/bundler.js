@@ -10,7 +10,8 @@ var vinylSource = require('vinyl-source-stream');
 var vinylBuffer = require('vinyl-buffer');
 var buildDir = './public/build';
 var watchBundles = false;
-
+// this modules (transforms or plugins) will only be enabled when watching
+var watchOnlyModules = [ 'errorify' ];
 function isWatching(){
   return watchBundles;
 }
@@ -30,6 +31,9 @@ function detectBrowserifyModules(projectRoot) {
     if (fs.existsSync(filename)) {
       var moduleInfo = require(filename);
       if (Array.isArray(moduleInfo.keywords)) {
+        if (!watchBundles && watchOnlyModules.indexOf(folder) >= 0) {
+          return;
+        }
         if (moduleInfo.keywords.indexOf('browserify-transform') >= 0) {
           transform.push(folder);
         }
