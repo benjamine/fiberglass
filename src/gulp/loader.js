@@ -4,6 +4,7 @@ var bulk = require('bulk-require');
 function GulpTaskLoader(gulp, projectRoot){
   this.projectRoot = projectRoot;
   this.gulp = gulp;
+  this.options = {};
   this.plugins = require('gulp-load-plugins')({
     config: path.join(__dirname, '../../package.json'),
     lazy: true
@@ -84,11 +85,17 @@ GulpTaskLoader.prototype.register = function() {
   });
 };
 
+GulpTaskLoader.prototype.setOptions = function(options) {
+  if (options) {
+    this.options = options;
+  }
+  return this;
+};
+
 GulpTaskLoader.prototype.addBundleTasks = function() {
   this.bundleTasks.push.apply(this.bundleTasks, arguments);
   return this;
 };
-
 
 GulpTaskLoader.prototype.packageInfo = function() {
   return require(path.join(this.projectRoot, 'package.json'));

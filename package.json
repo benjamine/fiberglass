@@ -1,6 +1,6 @@
 {
   "name": "fiberglass",
-  "version": "0.0.20",
+  "version": "0.0.21",
   "description": "some material to scaffold javascript modules",
   "main": "./src/main",
   "repository": {

@@ -198,21 +198,22 @@ function auto(loader) {
   var gulp = loader.gulp;
   var plugins = loader.plugins;
   var packageInfo = loader.packageInfo();
-
+  var loaderOptions = loader.options;
   var browserifyModules = detectBrowserifyModules(loader.projectRoot);
 
   if (browserifyModules.count) {
     console.log('browserifying with ' + browserifyModules.plugin.concat(browserifyModules.transform).join(', '));
   }
 
+  var browserifyOptions = loaderOptions.browserify || {};
+  browserifyOptions.name = packageInfo.name;
+  browserifyOptions.standalone = _.camelize(packageInfo.name);
+  browserifyOptions.transform = browserifyOptions.transform || browserifyModules.transform;
+  browserifyOptions.plugin = browserifyOptions.plugin || browserifyModules.plugin;
+
   // main bundle
   bundle(gulp, plugins, {
-    browserifyOptions: {
-      name: packageInfo.name,
-      standalone: _.camelize(packageInfo.name),
-      transform: browserifyModules.transform,
-      plugin: browserifyModules.plugin
-    },
+    browserifyOptions: browserifyOptions,
     packageInfo: packageInfo
   });
 
