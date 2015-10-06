@@ -6,6 +6,7 @@ var plumber = require('./util/plumber').plumber;
 gulp.task('lint', function() {
   return gulp.src([
       'gulpfile.js',
+      './gulp-tasks/**/*.js',
       './src/**/*.js',
       './test/**/*.js'
     ])
