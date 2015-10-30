@@ -122,7 +122,7 @@ function bundle(gulp, plugins, options) {
         .pipe(plugins.replace('{{package-homepage}}', packageInfo.homepage, replaceOptions))
         .pipe(plugins.replace('{{git-version}}', getGitVersion, replaceOptions))
 
-        .pipe(gulp.dest(buildDir));
+        .pipe(gulp.dest(options.buildDir || buildDir));
         return stream;
       }
 
@@ -150,7 +150,7 @@ function bundle(gulp, plugins, options) {
         bundler.plugin(minifyify, {
           map: fullname + '.map',
           uglify: uglifyOptions,
-          output: path.join(buildDir, fullname + '.map'),
+          output: path.join(options.buildDir || buildDir, fullname + '.map'),
           compressPath: function (p) {
             return '/source-files/' + packageInfo.name + '/' + path.relative('.', p);
           }
@@ -214,6 +214,7 @@ function auto(loader) {
   // main bundle
   bundle(gulp, plugins, {
     browserifyOptions: browserifyOptions,
+    buildDir: loaderOptions.buildDir,
     packageInfo: packageInfo
   });
 
@@ -231,6 +232,7 @@ function auto(loader) {
       bundle(gulp, plugins, {
         name: packageInfo.name + '-' + name,
         src: './src/' + filename,
+        buildDir: loaderOptions.buildDir,
         browserifyOptions: {
           standalone: standalone,
           transform: browserifyModules.transform,
@@ -244,6 +246,7 @@ function auto(loader) {
   bundle(gulp, plugins, {
     name: 'test-bundle',
     src: './test/index.js',
+    buildDir: loaderOptions.buildDir,
     minify: false,
     packageInfo: packageInfo,
     browserifyOptions: {
@@ -256,7 +259,7 @@ function auto(loader) {
   var watchTasks = getAllWatchTasks();
 
   var mochaFolder = path.join(__dirname, '../../../../node_modules/mocha');
-  var testBuildDir = path.join(buildDir, 'test');
+  var testBuildDir = path.join(loaderOptions.buildDir || buildDir, 'test');
   gulp.task('copy-test-resources', ['clean'], function() {
     gulp.src(path.join(mochaFolder, 'mocha.js'))
       .pipe(gulp.dest(testBuildDir));
