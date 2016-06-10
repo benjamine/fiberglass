@@ -11,6 +11,7 @@ function GulpTaskLoader(gulp, projectRoot){
   });
   this.tasks = bulk(__dirname + '/tasks', '*.js');
   this.bundleTasks = [];
+  this.bundleDependencies = [];
   var self = this;
   this.tags = {};
 
@@ -94,6 +95,11 @@ GulpTaskLoader.prototype.setOptions = function(options) {
 
 GulpTaskLoader.prototype.addBundleTasks = function() {
   this.bundleTasks.push.apply(this.bundleTasks, arguments);
+  return this;
+};
+
+GulpTaskLoader.prototype.addBundleDependencies = function() {
+  this.bundleDependencies.push.apply(this.bundleDependencies, arguments);
   return this;
 };
 

@@ -177,8 +177,13 @@ function bundle(gulp, plugins, options) {
     bundlify(true).on('end', onBundleDone);
   }
 
-  gulp.task(taskName, ['clean'], bundleTask);
-  gulp.task(taskName + '-watch', ['clean'], function(callback) {
+  var bundleDependencies = options.loader.bundleDependencies || [];
+  if (bundleDependencies.indexOf('clean') < 0) {
+    bundleDependencies.push('clean');
+  }
+  console.log('task',taskName, bundleDependencies);
+  gulp.task(taskName, bundleDependencies, bundleTask);
+  gulp.task(taskName + '-watch', bundleDependencies, function(callback) {
     watchBundles = true;
     return bundleTask(callback);
   });
@@ -214,7 +219,8 @@ function auto(loader) {
   // main bundle
   bundle(gulp, plugins, {
     browserifyOptions: browserifyOptions,
-    packageInfo: packageInfo
+    packageInfo: packageInfo,
+    loader: loader
   });
 
   // find additional bundles as: /src/main-{{bundle-name}}.js
@@ -236,35 +242,41 @@ function auto(loader) {
           transform: browserifyModules.transform,
           plugin: browserifyModules.plugin
         },
-        packageInfo: packageInfo
+        packageInfo: packageInfo,
+        loader: loader
       });
     }
   });
 
-  bundle(gulp, plugins, {
-    name: 'test-bundle',
-    src: './test/index.js',
-    minify: false,
-    packageInfo: packageInfo,
-    browserifyOptions: {
-      transform: browserifyModules.transform,
-      plugin: browserifyModules.plugin
-    }
-  });
+  if (!loaderOptions.noBrowserTesting) {
+    bundle(gulp, plugins, {
+      name: 'test-bundle',
+      src: './test/index.js',
+      minify: false,
+      packageInfo: packageInfo,
+      browserifyOptions: {
+        transform: browserifyModules.transform,
+        plugin: browserifyModules.plugin
+      },
+      loader: loader
+    });
+  }
 
   var tasks = getAllTasks();
   var watchTasks = getAllWatchTasks();
 
-  var mochaFolder = path.join(__dirname, '../../../../node_modules/mocha');
-  var testBuildDir = path.join(buildDir, 'test');
-  gulp.task('copy-test-resources', ['clean'], function() {
-    gulp.src(path.join(mochaFolder, 'mocha.js'))
-      .pipe(gulp.dest(testBuildDir));
-    gulp.src(path.join(mochaFolder, 'mocha.css'))
-      .pipe(gulp.dest(testBuildDir));
-  });
-  tasks.push('copy-test-resources');
-  watchTasks.push('copy-test-resources');
+  if (!loaderOptions.noBrowserTesting) {
+    var mochaFolder = path.join(__dirname, '../../../../node_modules/mocha');
+    var testBuildDir = path.join(buildDir, 'test');
+    gulp.task('copy-test-resources', ['clean'], function() {
+      gulp.src(path.join(mochaFolder, 'mocha.js'))
+        .pipe(gulp.dest(testBuildDir));
+      gulp.src(path.join(mochaFolder, 'mocha.css'))
+        .pipe(gulp.dest(testBuildDir));
+    });
+    tasks.push('copy-test-resources');
+    watchTasks.push('copy-test-resources');
+  }
 
   if (fs.existsSync(path.join(loader.projectRoot, 'bower.json' ))) {
     gulp.task('copy-bower-json', ['clean'], function() {
