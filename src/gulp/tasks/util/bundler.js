@@ -133,6 +133,10 @@ function bundle(gulp, plugins, options) {
           var startTime = new Date();
           console.log('rebuilding...');
           var rebuildStream = createBundle();
+          var listeners = bundler.listeners("reset").filter(l => l.name === "addHooks");
+          for (var i = 0; i < listeners.length - 1; i++) { //remove "reset" listeners except last
+            bundler.removeListener('reset', listeners[i]);
+          }
           rebuildStream.on('end', function() {
             var elapsed = Math.floor((new Date().getTime() - startTime.getTime()) / 10) / 100;
             console.log(fullname + '.js rebuilt (after ' + elapsed + ' s)');
